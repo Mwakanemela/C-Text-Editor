@@ -16,17 +16,37 @@ void disableRawMode();
 void die();
 void editorProcessKeyPress();
 char editorReadKey();
+void editorRefreshScreen();
+
+
 int main() {
 
 	enableRawMode();
 	
 	//read 1 byte from stdin till no bytes to read
 	while(1) {
+		editorRefreshScreen();
 		editorProcessKeyPress();
 	}
 	return 0;
 }
 
+//output
+void editorRefreshScreen() {
+	write(STDOUT_FILENO, "\x1b[2J", 4);
+}
+// input
+void editorProcessKeyPress() {
+	char c = editorReadKey();
+	
+	switch(c) {
+		case CTRL_KEY('q'):
+			exit(0);
+			break;
+	}
+
+}
+// terminal
 // use-case: 
 //	wait for 1 key press and return it 
 char editorReadKey() {
@@ -38,17 +58,7 @@ char editorReadKey() {
 	}
 	return c;
 }
-void editorProcessKeyPress() {
-	char c = editorReadKey();
-	
-	switch(c) {
-		case CTRL_KEY('q'):
-			exit(0);
-			break;
-	}
-
-}
-// terminal 
+ 
 void disableRawMode() {
 	if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_terminal_settings) == -1) {
 		die("tscattr");
