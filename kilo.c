@@ -17,7 +17,7 @@ void die();
 void editorProcessKeyPress();
 char editorReadKey();
 void editorRefreshScreen();
-
+void editorDrawRows();
 
 int main() {
 
@@ -38,6 +38,16 @@ void editorRefreshScreen() {
 	
 	//reposition the cursor at the top-left corner
 	write(STDOUT_FILENO, "\x1b[H", 3);
+	
+	editorDrawRows();
+	write(STDOUT_FILENO, "\x1b[H", 3);
+}
+void editorDrawRows() {
+	int y;
+	for(y = 0; y < 24; y++) {
+		//printf("%d\r\n", y+1); //for displaying number of lines
+		write(STDOUT_FILENO, "~\r\n", 3);
+	}
 }
 // input
 void editorProcessKeyPress() {
