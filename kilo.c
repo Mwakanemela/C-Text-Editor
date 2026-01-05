@@ -33,7 +33,11 @@ int main() {
 
 //output
 void editorRefreshScreen() {
+	//\x1b = 27 = escape character
 	write(STDOUT_FILENO, "\x1b[2J", 4);
+	
+	//reposition the cursor at the top-left corner
+	write(STDOUT_FILENO, "\x1b[H", 3);
 }
 // input
 void editorProcessKeyPress() {
