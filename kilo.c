@@ -4,11 +4,18 @@
 #include<ctype.h>
 #include<stdio.h>
 #include<errno.h>
+#include<sys/ioctl.h> // ioctl - i/o control
 
 // defines
 #define CTRL_KEY(k) ((k) & 0x1f)
 // data
-struct termios original_terminal_settings;
+struct editorConfig {
+	int screenrows;
+	int screencols;
+	struct termios original_terminal_settings;
+};
+
+struct editorConfig E;
 
 //functions
 void enableRawMode();
@@ -18,11 +25,17 @@ void editorProcessKeyPress();
 char editorReadKey();
 void editorRefreshScreen();
 void editorDrawRows();
+int getWindowSize(int *rows, int *cols);
+
+// initialize - init
+void initializeEditor() {
+	if(getWindowSize(&E.screenrows, &E.screencols) == -1) die("Fialed to getWindowSize");
+}
 
 int main() {
 
 	enableRawMode();
-	
+	initializeEditor();	
 	//read 1 byte from stdin till no bytes to read
 	while(1) {
 		editorRefreshScreen();
@@ -44,7 +57,7 @@ void editorRefreshScreen() {
 }
 void editorDrawRows() {
 	int y;
-	for(y = 0; y < 24; y++) {
+	for(y = 0; y < E.screenrows; y++) {
 		//printf("%d\r\n", y+1); //for displaying number of lines
 		write(STDOUT_FILENO, "~\r\n", 3);
 	}
@@ -67,6 +80,17 @@ void editorProcessKeyPress() {
 
 }
 // terminal
+int getWindowSize(int *rows, int *cols) {
+	struct winsize ws;
+	
+	if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+		return -1;
+	}else {
+		*cols = ws.ws_col;
+		*rows = ws.ws_row;
+		return 0;
+	}
+}
 // use-case: 
 //	wait for 1 key press and return it 
 char editorReadKey() {
@@ -80,17 +104,17 @@ char editorReadKey() {
 }
  
 void disableRawMode() {
-	if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_terminal_settings) == -1) {
+	if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.original_terminal_settings) == -1) {
 		die("tscattr");
 	}
 }
 
 void enableRawMode() {
 
-	if(tcgetattr(STDIN_FILENO, &original_terminal_settings) == -1) die("tcgetattr");
+	if(tcgetattr(STDIN_FILENO, &E.original_terminal_settings) == -1) die("tcgetattr");
 	atexit(disableRawMode);
 
-	struct termios raw = original_terminal_settings;
+	struct termios raw = E.original_terminal_settings;
 	raw.c_lflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
 	raw.c_lflag &= ~(OPOST);
 	raw.c_lflag &= ~(CS8);
