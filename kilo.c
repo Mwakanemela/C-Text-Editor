@@ -45,6 +45,12 @@ void editorProcessKeyPress() {
 	
 	switch(c) {
 		case CTRL_KEY('q'):
+			//\x1b = 27 = escape character
+			write(STDOUT_FILENO, "\x1b[2J", 4);
+			
+			//reposition the cursor at the top-left corner
+			write(STDOUT_FILENO, "\x1b[H", 3);
+			
 			exit(0);
 			break;
 	}
@@ -94,6 +100,12 @@ void enableRawMode() {
 
 void die(const char *s) {
 
+	//\x1b = 27 = escape character
+	write(STDOUT_FILENO, "\x1b[2J", 4);
+	
+	//reposition the cursor at the top-left corner
+	write(STDOUT_FILENO, "\x1b[H", 3);
+	
 	perror(s);
 	exit(1);
 }
