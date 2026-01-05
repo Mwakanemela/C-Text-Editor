@@ -5,31 +5,50 @@
 #include<stdio.h>
 #include<errno.h>
 
-
+// defines
+#define CTRL_KEY(k) ((k) & 0x1f)
+// data
 struct termios original_terminal_settings;
 
+//functions
 void enableRawMode();
 void disableRawMode();
 void die();
-
+void editorProcessKeyPress();
+char editorReadKey();
 int main() {
 
 	enableRawMode();
 	
 	//read 1 byte from stdin till no bytes to read
 	while(1) {
-		char c = '\0';
-		if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) die("read");
-		if(iscntrl(c)) {
-			printf("%d\r\n",c);
-		}else{
-			printf("%d ('%c')\r\n", c ,c);
-		}
-		if(c == 'q') break;
+		editorProcessKeyPress();
 	}
 	return 0;
 }
 
+// use-case: 
+//	wait for 1 key press and return it 
+char editorReadKey() {
+
+	int nread;
+	char c;
+	while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+		if(nread == -1 && errno != EAGAIN) die("read");
+	}
+	return c;
+}
+void editorProcessKeyPress() {
+	char c = editorReadKey();
+	
+	switch(c) {
+		case CTRL_KEY('q'):
+			exit(0);
+			break;
+	}
+
+}
+// terminal 
 void disableRawMode() {
 	if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_terminal_settings) == -1) {
 		die("tscattr");
