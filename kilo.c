@@ -65,7 +65,7 @@ void editorRefreshScreen() {
 	abAppend(&ab, "\x1b[?25l", 6);
 	
 	//\x1b = 27 = escape character
-	abAppend(&ab, "\x1b[2J", 4);
+	//abAppend(&ab, "\x1b[2J", 4);
 	
 	//reposition the cursor at the top-left corner
 	abAppend(&ab, "\x1b[H", 3);
@@ -84,6 +84,7 @@ void editorDrawRows(struct abuf *ab) {
 	for(y = 0; y < E.screenrows; y++) {
 		//printf("%d\r\n", y+1); //for displaying number of lines
 		abAppend(ab, "~", 1);
+		abAppend(ab, "\x1b[K", 3);
 		if(y < E.screenrows - 1) {
 			abAppend(ab, "\r\n", 2);
 		}
