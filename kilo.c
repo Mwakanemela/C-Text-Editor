@@ -8,7 +8,10 @@
 #include<string.h>
 
 // defines
+#define MWAKA_EDITOR_VERSION "0.0.1"
+
 #define CTRL_KEY(k) ((k) & 0x1f)
+
 // data
 struct editorConfig {
 	int screenrows;
@@ -82,8 +85,23 @@ void editorRefreshScreen() {
 void editorDrawRows(struct abuf *ab) {
 	int y;
 	for(y = 0; y < E.screenrows; y++) {
-		//printf("%d\r\n", y+1); //for displaying number of lines
-		abAppend(ab, "~", 1);
+		if(y == E.screenrows / 3) {
+			char welcome[80];
+			int welcomelen = snprintf(welcome, sizeof(welcome), "Mwaka editor -- version %s", MWAKA_EDITOR_VERSION);
+			if(welcomelen > E.screencols) welcomelen = E.screencols;
+			//centering welcome message
+			int padding = (E.screencols - welcomelen) / 2;
+			if(padding) {
+				abAppend(ab, "~", 1);
+				padding--;
+			}
+			while(padding--) abAppend(ab, " ", 1);
+			abAppend(ab, welcome, welcomelen);
+		}else {
+			//printf("%d\r\n", y+1); //for displaying number of lines
+			abAppend(ab, "~", 1);
+		}
+		
 		abAppend(ab, "\x1b[K", 3);
 		if(y < E.screenrows - 1) {
 			abAppend(ab, "\r\n", 2);
