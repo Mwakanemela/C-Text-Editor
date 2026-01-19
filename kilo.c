@@ -14,6 +14,7 @@
 
 // data
 struct editorConfig {
+	int cx, cy;
 	int screenrows;
 	int screencols;
 	struct termios original_terminal_settings;
@@ -42,9 +43,12 @@ int getWindowSize(int *rows, int *cols);
 int getCursorPosition(int *rows, int *cols);
 void abAppend(struct abuf *ab, const char *s, int len);
 void abFree(struct abuf *ab);
+void editorMoveCursor(char key);
 
 // initialize - init
 void initializeEditor() {
+	E.cx = 0;
+	E.cy = 0;
 	if(getWindowSize(&E.screenrows, &E.screencols) == -1) die("Fialed to getWindowSize");
 }
 
@@ -74,7 +78,10 @@ void editorRefreshScreen() {
 	abAppend(&ab, "\x1b[H", 3);
 	
 	editorDrawRows(&ab);
-	abAppend(&ab, "\x1b[H", 3);
+	
+	char buf[32];
+	snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+	abAppend(&ab, buf, strlen(buf));
 	
 	//show cursor
 	abAppend(&ab, "\x1b[?25h", 6);
@@ -122,8 +129,31 @@ void editorProcessKeyPress() {
 			
 			exit(0);
 			break;
+		case 'w':
+		case 's':
+		case 'a':
+		case 'd':
+			editorMoveCursor(c);
+			break;
 	}
 
+}
+
+void editorMoveCursor(char key) {
+	switch(key) {
+		case 'a':
+			E.cx--;
+			break;
+		case 'd': 
+			E.cx++;
+			break;
+		case 'w':
+			E.cy--;
+			break;
+		case 's':
+			E.cy++;
+			break;
+	}
 }
 
 void abAppend(struct abuf *ab, const char *s, int len) {
