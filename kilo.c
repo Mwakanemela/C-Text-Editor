@@ -61,6 +61,9 @@ int main() {
 void editorRefreshScreen() {
 	struct abuf ab = ABUF_INIT;
 	
+	//hide cursor
+	abAppend(&ab, "\x1b[?25l", 6);
+	
 	//\x1b = 27 = escape character
 	abAppend(&ab, "\x1b[2J", 4);
 	
@@ -69,6 +72,9 @@ void editorRefreshScreen() {
 	
 	editorDrawRows(&ab);
 	abAppend(&ab, "\x1b[H", 3);
+	
+	//show cursor
+	abAppend(&ab, "\x1b[?25h", 6);
 	
 	write(STDOUT_FILENO, ab.b, ab.len);
 	abFree(&ab);
