@@ -5,6 +5,7 @@
 #include<stdio.h>
 #include<errno.h>
 #include<sys/ioctl.h> // ioctl - i/o control
+#include<string.h>
 
 // defines
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -17,6 +18,15 @@ struct editorConfig {
 
 struct editorConfig E;
 
+// append buffer - for creating our own dynamic string data type
+struct abuf {
+	char *b;
+	int len;
+};
+
+// an empty buffer - acts as a constructor
+#define ABUF_INIT {NULL, 0}
+
 //functions
 void enableRawMode();
 void disableRawMode();
@@ -24,9 +34,11 @@ void die();
 void editorProcessKeyPress();
 char editorReadKey();
 void editorRefreshScreen();
-void editorDrawRows();
+void editorDrawRows(struct abuf *ab);
 int getWindowSize(int *rows, int *cols);
 int getCursorPosition(int *rows, int *cols);
+void abAppend(struct abuf *ab, const char *s, int len);
+void abFree(struct abuf *ab);
 
 // initialize - init
 void initializeEditor() {
@@ -47,22 +59,27 @@ int main() {
 
 //output
 void editorRefreshScreen() {
+	struct abuf ab = ABUF_INIT;
+	
 	//\x1b = 27 = escape character
-	write(STDOUT_FILENO, "\x1b[2J", 4);
+	abAppend(&ab, "\x1b[2J", 4);
 	
 	//reposition the cursor at the top-left corner
-	write(STDOUT_FILENO, "\x1b[H", 3);
+	abAppend(&ab, "\x1b[H", 3);
 	
-	editorDrawRows();
-	write(STDOUT_FILENO, "\x1b[H", 3);
+	editorDrawRows(&ab);
+	abAppend(&ab, "\x1b[H", 3);
+	
+	write(STDOUT_FILENO, ab.b, ab.len);
+	abFree(&ab);
 }
-void editorDrawRows() {
+void editorDrawRows(struct abuf *ab) {
 	int y;
 	for(y = 0; y < E.screenrows; y++) {
 		//printf("%d\r\n", y+1); //for displaying number of lines
-		write(STDOUT_FILENO, "~", 1);
+		abAppend(ab, "~", 1);
 		if(y < E.screenrows - 1) {
-			write(STDOUT_FILENO, "\r\n", 2);
+			abAppend(ab, "\r\n", 2);
 		}
 	}
 }
@@ -83,6 +100,20 @@ void editorProcessKeyPress() {
 	}
 
 }
+
+void abAppend(struct abuf *ab, const char *s, int len) {
+	char *new = realloc(ab->b, ab->len + len);
+	
+	if(new == NULL) return;
+	memcpy(&new[ab->len], s, len);
+	ab->b = new;
+	ab->len += len;
+}
+
+void abFree(struct abuf *ab) {
+	free(ab->b);
+}
+
 // terminal
 int getWindowSize(int *rows, int *cols) {
 	struct winsize ws;
