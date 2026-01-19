@@ -60,7 +60,10 @@ void editorDrawRows() {
 	int y;
 	for(y = 0; y < E.screenrows; y++) {
 		//printf("%d\r\n", y+1); //for displaying number of lines
-		write(STDOUT_FILENO, "~\r\n", 3);
+		write(STDOUT_FILENO, "~", 1);
+		if(y < E.screenrows - 1) {
+			write(STDOUT_FILENO, "\r\n", 2);
+		}
 	}
 }
 // input
