@@ -41,6 +41,7 @@ typedef struct erow {
 
 struct editorConfig {
 	int cx, cy;
+	int rowoff;
 	int screenrows;
 	int screencols;
 	int numrows;
@@ -75,11 +76,13 @@ void abFree(struct abuf *ab);
 void editorMoveCursor(int key);
 void editorOpen(char *filename);
 void editorAppendRow(char *s, size_t len);
+void editorScroll();
 
 // initialize - init
 void initializeEditor() {
 	E.cx = 0;
 	E.cy = 0;
+	E.rowoff = 0;
 	E.numrows = 0;
 	E.row = NULL;
 	
@@ -135,7 +138,21 @@ void editorAppendRow(char *s, size_t len) {
 }
 
 //output
+void editorScroll() {
+	//check if the cursor is above the visible window
+	if(E.cy < E.rowoff) {
+		//scroll up to where the cursor is
+		E.rowoff = E.cy;
+	}
+	
+	//check if the cursor is past the bottom of the visible window
+	if(E.cy >= E.rowoff + E.screenrows) {
+		E.rowoff = E.cy - E.screenrows + 1;
+	}
+}
+
 void editorRefreshScreen() {
+	editorScroll();
 	struct abuf ab = ABUF_INIT;
 	
 	//hide cursor
@@ -150,7 +167,7 @@ void editorRefreshScreen() {
 	editorDrawRows(&ab);
 	
 	char buf[32];
-	snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+	snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, E.cx + 1);
 	abAppend(&ab, buf, strlen(buf));
 	
 	//show cursor
@@ -162,8 +179,9 @@ void editorRefreshScreen() {
 void editorDrawRows(struct abuf *ab) {
 	int y;
 	for(y = 0; y < E.screenrows; y++) {
-		if(y >= E.numrows) {
-		//display welcome msg wen user starts program with no args
+		int filerow = y + E.rowoff;
+		if(filerow >= E.numrows) {
+			//display welcome msg wen user starts program with no args
 			if(E.numrows == 0 && y == E.screenrows / 3) {
 				char welcome[80];
 				int welcomelen = snprintf(welcome, sizeof(welcome), "Mwaka editor -- version %s", MWAKA_EDITOR_VERSION);
@@ -181,9 +199,9 @@ void editorDrawRows(struct abuf *ab) {
 				abAppend(ab, "~", 1);
 			}
 		}else {
-			int len = E.row[y].size;
+			int len = E.row[filerow].size;
 			if(len > E.screencols) len = E.screencols;
-			abAppend(ab, E.row[y].chars, len);
+			abAppend(ab, E.row[filerow].chars, len);
 		}
 		abAppend(ab, "\x1b[K", 3);
 		if(y < E.screenrows - 1) {
@@ -247,7 +265,7 @@ void editorMoveCursor(int key) {
 			}
 			break;
 		case ARROW_DOWN:
-			if(E.cy != E.screenrows - 1) {
+			if(E.cy < E.numrows) {
 				E.cy++;
 			}
 			break;
